@@ -15,13 +15,21 @@ class joy_controller
 
   ros::Subscriber sub_; 
   
-  ros::Publisher pub_; 
+  
   
   float lin_max_;
   
   float ang_max_;
+
+  int num_;
+
+  
   
 public:
+
+  geometry_msgs::Twist vel;
+
+  ros::Publisher pub_; 
   
   joy_controller()
   {
@@ -34,16 +42,17 @@ public:
 
   void init()
   {
-    sub_ = n_.subscribe("/joy", 1000, &joy_controller::joyCallback, this);
-    pub_ = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
-    lin_max_ = 0.3;
-    ang_max_ = 0.3;
+    sub_ = n_.subscribe("/joy", 10, &joy_controller::joyCallback, this);
+    pub_ = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+    lin_max_ = 0.5;
+    ang_max_ = 0.5;
+    num_ = 0;
   }
   
   void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
   {
 //     std::cout<<"!!!!!!!!!!!!!!!!"<<std::endl;
-    geometry_msgs::Twist vel;
+    
 //     vel.linear.x = 0;
 //     vel.angular.z = 0;
     if(msg->buttons[1]==1)
@@ -55,13 +64,18 @@ public:
     
     if(msg->buttons[0]==1)
     {
-      vel.linear.x = 1;
-      vel.angular.z = 1;
       float ang_joy = msg->axes[0] * ang_max_;    //角速度
       float lin_joy = msg->axes[1] * lin_max_;
       std::cout<<"lin: "<<lin_joy<<"; ang: "<<ang_joy<<std::endl;
+      //num_++;
+      //std::cout<<num_<<std::endl;
+      //if(num_==5000)
+      //{num_=0;}
+      
 //       std::cout<<"ang: "<<ang_joy<<std::endl;
-      pub_.publish(vel);
+      vel.linear.x = lin_joy;
+      vel.angular.z = ang_joy;
+//      pub_.publish(vel);
     }
     
     
@@ -76,10 +90,19 @@ int main(int argc, char **argv)
 
   joy_controller jc;
   jc.init();
-  
+  ros::Rate loop_rate(10);
+
+  while (ros::ok())
+  {
+    jc.pub_.publish(jc.vel);
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+
+
 
   
-  ros::spin();
+ // ros::spin();
 
   return 0;
 }
